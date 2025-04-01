@@ -1,4 +1,6 @@
 ﻿
+using MySql.Data.MySqlClient;
+
 var database = new Database();
 database.TestConnection();
 
@@ -37,28 +39,32 @@ void Login()
 
     string query = "SELECT password FROM Users WHERE username = @username";
 
-    var keyValues = new Dictionary<string, string>()
+    var parameters = new[]
     {
-        {"@username", user.Username}
+        new MySqlParameter("@username", user.Username)
     };
 
-    var reader = database.Reader(database.Connection,query, keyValues);
-
-    if (reader.Read())
-    {
-        string hashPassword = reader["password"].ToString()!;
-        if (BCrypt.Net.BCrypt.Verify(user.Password, hashPassword))
+    database.ReadData(query, parameters, reader => {
+        if (reader.Read())
         {
-            Console.WriteLine("Login Successful");
-            var bank = new Bank(user.Username);
-            bank.ViewOption();
+            string hashPassword = reader["password"].ToString()!;
+            if (BCrypt.Net.BCrypt.Verify(user.Password, hashPassword))
+            {
+                Console.WriteLine("Login Successful");
+                var bank = new Bank(user.Username);
+                bank.ViewOption();
+            }
+            else
+            {
+                Console.WriteLine("Login Failed! Invalid Credentials\n");
+            }
         }
         else
         {
-            Console.WriteLine("Login Failed! Invalid Credentials");
+            Console.WriteLine("cant read\n");
         }
-    }
-    database.Connection.Close();
+    });
+
 }
 
 
@@ -79,31 +85,35 @@ void SignUp()
     string rawPassword = Console.ReadLine()!;
     newUser.Password = BCrypt.Net.BCrypt.HashPassword(rawPassword);
 
+
+    // Saving credentials to the balance table
     string userQuery = "INSERT INTO users (username, password, firstname, lastname) " +
                     "VALUES (@username, @password, @firstname, @lastname)";
 
-    var userKeyValues = new Dictionary<string, string>()
+    var userParameters = new[]
     {
-        {"@username", newUser.Username},
-        {"@password", newUser.Password},
-        {"@firstname", newUser.FirstName},
-        {"@lastname", newUser.LastName}
+        new MySqlParameter("@username", newUser.Username),
+        new MySqlParameter("@password", newUser.Password),
+        new MySqlParameter("@firstname", newUser.FirstName),
+        new MySqlParameter("@lastname", newUser.LastName)
     };
 
+
+    // Saving credentials to the balance table
     string balanceQuery = "INSERT INTO balance (username) VALUES (@username)";
-
-    var balanceKeyValues = new Dictionary<string, string>()
+    var balanceParameters = new[]
     {
-        {"@username", newUser.Username}
+        new MySqlParameter("@username", newUser.Username),
     };
-    
-    if (database.Command(userQuery, userKeyValues) && database.Command(balanceQuery, balanceKeyValues))
+ 
+    if (database.TryExecuteQuery(userQuery, userParameters) && 
+        database.TryExecuteQuery(balanceQuery, balanceParameters))
     {
-        Console.WriteLine($"Welcome user {newUser.Username}");
+        Console.WriteLine($"Welcome user {newUser.Username}\n");
         Main();
     }
     else
     {
-        Console.WriteLine("Failed to signup");
+        Console.WriteLine("Failed to signup\n");
     }
 }

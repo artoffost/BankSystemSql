@@ -1,3 +1,5 @@
+using MySql.Data.MySqlClient;
+
 class Bank
 {
     private readonly string _username;
@@ -16,7 +18,7 @@ class Bank
         switch (choice)
         {
             case 1:
-                Console.WriteLine($"Your Balance is {ViewBalance()}");
+                Console.WriteLine($"Your Balance is {ViewBalance()}\n");
                 ViewOption();
                 return;
             case 2:
@@ -32,26 +34,28 @@ class Bank
                 ViewOption();
                 return;
             case 4:
-                Console.WriteLine("Thank you for using the system");
+                Console.WriteLine("Thank you for using the system\n");
                 return;
         }
     }
 
     public decimal ViewBalance()
     {
-        database.Connection.Close();
-
         string query = "SELECT amount FROM balance WHERE username = @username";
-        var reader = database.Reader(database.Connection, query, new() { ["@username"] = _username });
-
-        if (reader.Read())
+        var parameters = new[]
         {
-            return Convert.ToDecimal(reader["amount"]);
-        }
-        database.Connection.Close();
+            new MySqlParameter("@username", _username)
+        };
 
-        return 0;
+        decimal amount = 0;
+        database.ReadData(query, parameters, reader => {
+            if (reader.Read())
+            {
+                amount = Convert.ToDecimal(reader["amount"]);
+            }
+        });
 
+        return amount;
         
     }
     public void Deposit(decimal amount)
@@ -59,42 +63,44 @@ class Bank
         
         string query = "UPDATE balance SET amount = amount + @amount WHERE username = @username";
 
-        var keyValues = new Dictionary<string, string>()
+        var parameters = new[] 
         {
-            {"@amount", amount.ToString()},
-            {"@username", _username}
+            new MySqlParameter("@amount", amount.ToString()),
+            new MySqlParameter("@username", _username)
         };
-        if (database.Command(query, keyValues))
+
+        if (database.TryExecuteQuery(query, parameters))
         {
-            Console.WriteLine("Successfully deposited " + amount);
+            Console.WriteLine($"Successfully deposited {amount}\n");
         }
         else
         {
-            Console.WriteLine("Deposit Failed");
+            Console.WriteLine("Deposit Failed\n");
         }
     }
     public void Withdraw(decimal amount)
     {
         if (ViewBalance() < amount)
         {
-            Console.WriteLine("Not Enough Balance");
+            Console.WriteLine("Not Enough Balance\n");
             return;
         }
 
         string query = "UPDATE balance SET amount = amount - @amount WHERE username = @username";
 
-        var keyValues = new Dictionary<string, string>()
+        var parameters = new[] 
         {
-            {"@amount", amount.ToString()},
-            {"@username", _username}
+            new MySqlParameter("@amount", amount.ToString()),
+            new MySqlParameter("@username", _username)
         };
-        if (database.Command(query, keyValues))
+
+        if (database.TryExecuteQuery(query, parameters))
         {
-            Console.WriteLine("Successfully withdraw " + amount);
+            Console.WriteLine($"Successfully withdrawn {amount}\n");
         }
         else
         {
-            Console.WriteLine("Withdraw Failed");
+            Console.WriteLine("Withdraw Failed\n");
         }
     }
 }

@@ -17,37 +17,32 @@ class Database
             Console.WriteLine("Connection Failed");
         }
     }
-    public MySqlConnection Connection = new MySqlConnection(ConnectionString);
-    public MySqlDataReader Reader(
-        MySqlConnection connection, 
+    public void ReadData(
         string query, 
-        Dictionary<string, string>? keyValues = null)
+        MySqlParameter[] parameters, 
+        Action<MySqlDataReader> reader)
     {
-        try
+        using (var connection = new MySqlConnection(ConnectionString))
         {
             connection.Open();
-            var command = new MySqlCommand(query, connection);
-            
-            if (keyValues is not null)
+
+            using (var command = new MySqlCommand(query, connection))
             {
-                foreach (var item in keyValues)
+                if (parameters.Length > 0)
                 {
-                    command.Parameters.AddWithValue(item.Key, item.Value);
+                    command.Parameters.AddRange(parameters);
+                }
+
+                using (var executeReader = command.ExecuteReader())
+                {
+                    
+                    reader(executeReader);
+                    
                 }
             }
-
-            var reader = command.ExecuteReader();
-            return reader;    
-                
-        }
-        catch (System.Exception)
-        {    
-            throw;
         }
     }
-    public bool Command(
-        string query, 
-        Dictionary<string, string>? keyValues = null)
+    public bool TryExecuteQuery(string query, MySqlParameter[] parameters)
     {
         try
         {
@@ -57,23 +52,19 @@ class Database
 
                 using (var command = new MySqlCommand(query, connection))
                 {
-                    if (keyValues is not null)
+                    if (parameters.Length > 0)
                     {
-                        foreach (var item in keyValues)
-                        {
-                            command.Parameters.AddWithValue(item.Key, item.Value);
-                        }
+                        command.Parameters.AddRange(parameters);
                     }
                     command.ExecuteNonQuery();
                     return true;
                 }
             }
         }
-        catch (System.Exception ex)
+        catch (System.Exception)
         {
-            
-            Console.WriteLine(ex);
-            return false;
+            throw;
         }
+        
     }
 }
