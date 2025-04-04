@@ -65,7 +65,7 @@ class Bank
 
         var parameters = new[] 
         {
-            new MySqlParameter("@amount", amount.ToString()),
+            new MySqlParameter("@amount", amount),
             new MySqlParameter("@username", _username)
         };
 
@@ -90,7 +90,7 @@ class Bank
 
         var parameters = new[] 
         {
-            new MySqlParameter("@amount", amount.ToString()),
+            new MySqlParameter("@amount", amount),
             new MySqlParameter("@username", _username)
         };
 

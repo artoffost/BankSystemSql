@@ -1,5 +1,4 @@
-﻿
-using MySql.Data.MySqlClient;
+﻿using MySql.Data.MySqlClient;
 
 var database = new Database();
 database.TestConnection();
@@ -85,6 +84,12 @@ void SignUp()
     string rawPassword = Console.ReadLine()!;
     newUser.Password = BCrypt.Net.BCrypt.HashPassword(rawPassword);
 
+    if (HasUsernameExists(newUser.Username))
+    {
+        Console.WriteLine("Username Already Exists! Sign up again");
+        SignUp();
+        return;
+    }
 
     // Saving credentials to the balance table
     string userQuery = "INSERT INTO users (username, password, firstname, lastname) " +
@@ -116,4 +121,23 @@ void SignUp()
     {
         Console.WriteLine("Failed to signup\n");
     }
+}
+
+bool HasUsernameExists(string username)
+{
+    string query = "SELECT username FROM users WHERE username = @username";
+
+    var parameters = new[]
+    {
+        new MySqlParameter("@username", username)
+    };
+
+    bool hasUsername = false;
+    database.ReadData(query, parameters, reader => {
+        if (reader.Read())
+        {
+            hasUsername = true;
+        }
+    });
+    return hasUsername;
 }
