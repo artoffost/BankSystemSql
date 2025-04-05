@@ -1,4 +1,4 @@
-﻿using MySql.Data.MySqlClient;
+﻿using Npgsql;
 
 var database = new Database();
 database.TestConnection();
@@ -36,11 +36,11 @@ void Login()
     Console.Write("Enter Password: ");
     user.Password = Console.ReadLine()!;
 
-    string query = "SELECT password FROM Users WHERE username = @username";
+    string query = "";
 
     var parameters = new[]
     {
-        new MySqlParameter("@username", user.Username)
+        new NpgsqlParameter("", user.Username)
     };
 
     database.ReadData(query, parameters, reader => {
@@ -56,11 +56,15 @@ void Login()
             else
             {
                 Console.WriteLine("Login Failed! Invalid Credentials\n");
+                Main();
+                return;
             }
         }
         else
         {
-            Console.WriteLine("cant read\n");
+            Console.WriteLine("User does not exist!\n");
+            Main();
+            return;
         }
     });
 
@@ -92,23 +96,22 @@ void SignUp()
     }
 
     // Saving credentials to the balance table
-    string userQuery = "INSERT INTO users (username, password, firstname, lastname) " +
-                    "VALUES (@username, @password, @firstname, @lastname)";
+    string userQuery = "";
 
     var userParameters = new[]
     {
-        new MySqlParameter("@username", newUser.Username),
-        new MySqlParameter("@password", newUser.Password),
-        new MySqlParameter("@firstname", newUser.FirstName),
-        new MySqlParameter("@lastname", newUser.LastName)
+        new NpgsqlParameter("", newUser.Username),
+        new NpgsqlParameter("", newUser.Password),
+        new NpgsqlParameter("", newUser.FirstName),
+        new NpgsqlParameter("", newUser.LastName)
     };
 
 
     // Saving credentials to the balance table
-    string balanceQuery = "INSERT INTO balance (username) VALUES (@username)";
+    string balanceQuery = "";
     var balanceParameters = new[]
     {
-        new MySqlParameter("@username", newUser.Username),
+        new NpgsqlParameter("", newUser.Username),
     };
  
     if (database.TryExecuteQuery(userQuery, userParameters) && 
@@ -125,11 +128,11 @@ void SignUp()
 
 bool HasUsernameExists(string username)
 {
-    string query = "SELECT username FROM users WHERE username = @username";
+    string query = "";
 
     var parameters = new[]
     {
-        new MySqlParameter("@username", username)
+        new NpgsqlParameter("", username)
     };
 
     bool hasUsername = false;
